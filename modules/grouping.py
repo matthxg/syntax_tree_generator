@@ -17,6 +17,8 @@ def try_group_chunks(forest):
         round_num += 1
     return forest, changed
 
+from modules.phrases.group_coord import try_group_coord
+
 def _apply_grouping_pass(forest):
     print("✅ Using grouping.py from canvas")
 
@@ -37,6 +39,14 @@ def _apply_grouping_pass(forest):
             i += 1
             continue
 
+        # Try coordination first
+        coord_result = try_group_coord(current, next1, next2, next3)
+        if coord_result:
+            new_forest.append(coord_result["node"])
+            i += coord_result["consumed"]
+            changed = True
+            continue
+
         # Try each phrase type
         for grouper in [
             try_group_np, try_group_vp, try_group_pp,
@@ -50,8 +60,11 @@ def _apply_grouping_pass(forest):
                 changed = True
                 break
         else:
-            # Defer fallback: V → VP (intransitive)
-            if current[0] == "V" and (not next1 or next1[0] not in ["NP", "PP", "CP"]):
+            # Defer fallback: V → VP (intransitive) ONLY if no signs of NP/PP/CP grouping
+            if current[0] == "V" and not (
+                (next1 and next1[0] == "D" and next2 and next2[0] == "N") or
+                (next1 and next1[0] in ["NP", "PP", "CP"])
+            ):
                 print(f"Deferred fallback: Forming VP (intransitive): {current}")
                 new_forest.append(("VP", [current]))
                 i += 1
