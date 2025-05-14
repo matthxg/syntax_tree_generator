@@ -1,77 +1,115 @@
-# modules/grouping.py
-from modules.phrases.group_np import try_group_np
-from modules.phrases.group_vp import try_group_vp
-from modules.phrases.group_pp import try_group_pp
-from modules.phrases.group_tp import try_group_tp
-from modules.phrases.group_cp import try_group_cp
-from modules.phrases.group_adjp import try_group_adjp
-from modules.phrases.group_advp import try_group_advp
-
-def try_group_chunks(forest):
-    round_num = 1
-    while True:
-        print(f"🔁 Grouping round {round_num}...")
-        forest, changed = _apply_grouping_pass(forest)
-        if not changed:
-            break
-        round_num += 1
-    return forest, changed
-
-from modules.phrases.group_coord import try_group_coord
-
-def _apply_grouping_pass(forest):
-    print("✅ Using grouping.py from canvas")
-
+def try_group_np(tokens):
     i = 0
-    changed = False
-    new_forest = []
-
-    while i < len(forest):
-        current = forest[i]
-        next1 = forest[i+1] if i + 1 < len(forest) else None
-        next2 = forest[i+2] if i + 2 < len(forest) else None
-        next3 = forest[i+3] if i + 3 < len(forest) else None
-
-        # Handle punctuation (do not mark as changed)
-        if current[0] == "PUNCT":
-            print(f"Marking punctuation: {current}")
-            new_forest.append(("PUNCT", current[1]))
-            i += 1
-            continue
-
-        # Try coordination first
-        coord_result = try_group_coord(current, next1, next2, next3)
-        if coord_result:
-            new_forest.append(coord_result["node"])
-            i += coord_result["consumed"]
-            changed = True
-            continue
-
-        # Try each phrase type
-        for grouper in [
-            try_group_np, try_group_vp, try_group_pp,
-            try_group_tp, try_group_cp,
-            try_group_adjp, try_group_advp
-        ]:
-            result = grouper(current, next1, next2, next3)
-            if result:
-                new_forest.append(result["node"])
-                i += result["consumed"]
-                changed = True
-                break
+    while i < len(tokens) - 1:
+        if tokens[i][0] == 'D' and tokens[i+1][0] == 'N':
+            tokens = tokens[:i] + [('NP', [tokens[i], tokens[i+1]])] + tokens[i+2:]
+            i = 0
         else:
-            # Defer fallback: V → VP (intransitive) ONLY if no signs of NP/PP/CP grouping
-            if current[0] == "V" and not (
-                (next1 and next1[0] == "D" and next2 and next2[0] == "N") or
-                (next1 and next1[0] in ["NP", "PP", "CP"])
-            ):
-                print(f"Deferred fallback: Forming VP (intransitive): {current}")
-                new_forest.append(("VP", [current]))
-                i += 1
-                changed = True
-            else:
-                print(f"⚠️ No rule applied to token: {current}")
-                new_forest.append(current)
-                i += 1
+            i += 1
+    return tokens
 
-    return new_forest, changed
+def try_group_vprime(tokens):
+    i = 0
+    while i < len(tokens) - 1:
+        if tokens[i][0] == 'V' and tokens[i+1][0] == 'NP':
+            tokens = tokens[:i] + [("V'", [tokens[i], tokens[i+1]])] + tokens[i+2:]
+            i = 0
+        else:
+            i += 1
+    return tokens
+
+def try_group_vp(tokens):
+    i = 0
+    while i < len(tokens) - 1:
+        if tokens[i][0] == "V'":
+            tokens = tokens[:i] + [('VP', [tokens[i]])] + tokens[i+1:]
+            i = 0
+        else:
+            i += 1
+    return tokens
+
+def try_group_tp(tokens):
+    i = 0
+    while i < len(tokens) - 1:
+        if tokens[i][0] == 'NP' and tokens[i+1][0] == 'VP':
+            t_node = ('T', ['Ø'])
+            t_bar = ("T'", [t_node, tokens[i+1]])
+            tokens = tokens[:i] + [('TP', [tokens[i], t_bar])] + tokens[i+2:]
+            i = 0
+        else:
+            i += 1
+    return tokens
+
+def try_general_coordination(tokens):
+    """
+    Detects and merges repeated phrases of the same label with coordination tokens.
+    Supports flat (n-ary) coordination across all categories: NP, VP, etc.
+    Also handles comma-, semicolon-, and colon-separated coordination (Oxford comma supported).
+    """
+    i = 0
+    while i < len(tokens) - 2:
+        coord_group = []
+        label = None
+        j = i
+
+        while j < len(tokens) - 2:
+            first, sep, second = tokens[j], tokens[j+1], tokens[j+2]
+
+            if not (isinstance(first, tuple) and isinstance(second, tuple)):
+                break
+
+            if first[0] != second[0]:
+                break
+
+            if sep[0] == 'PUNCT' and sep[1] in [[','], [';'], [':']]:
+                # Accept separator, continue
+                if label is None:
+                    label = first[0]
+                if not coord_group:
+                    coord_group.extend([first, sep, second])
+                else:
+                    coord_group.extend([sep, second])
+                j += 2
+            elif sep[0] == 'PUNCT' and sep[1] == [','] and j + 3 < len(tokens):
+                # Check for Oxford comma: X , CONJ X
+                next_conj, next_token = tokens[j+2], tokens[j+3]
+                if next_conj[0] == 'CONJ' and next_token[0] == first[0]:
+                    if label is None:
+                        label = first[0]
+                    if not coord_group:
+                        coord_group.extend([first, sep, next_conj, next_token])
+                    else:
+                        coord_group.extend([sep, next_conj, next_token])
+                    j += 3
+                    break
+                else:
+                    break
+            elif sep[0] == 'CONJ':
+                # Regular conjunction (no Oxford comma)
+                if label is None:
+                    label = first[0]
+                if not coord_group:
+                    coord_group.extend([first, sep, second])
+                else:
+                    coord_group.extend([sep, second])
+                j += 2
+                break
+            else:
+                break
+
+        if coord_group:
+            new_node = (label, coord_group)
+            tokens = tokens[:i] + [new_node] + tokens[j+1:]
+            i = 0
+        else:
+            i += 1
+
+    return tokens
+
+def apply_grouping_rules(tokens):
+    tokens = try_general_coordination(tokens)
+    tokens = try_group_np(tokens)
+    tokens = try_group_vprime(tokens)
+    tokens = try_group_vp(tokens)
+    tokens = try_group_tp(tokens)
+    return 
