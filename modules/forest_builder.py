@@ -57,7 +57,8 @@ def tree_to_latex(label, children):
             if isinstance(child, tuple) and len(child) == 2:
                 subtrees.append(tree_to_latex(*child))
             elif isinstance(child, str):
-                subtrees.append(f"[{esc(child)}]")
+                escaped = "$\\emptyset$" if label == "T" and child == "Ø" else esc(child)
+                subtrees.append(f"[{escaped}]")
             else:
                 raise ValueError(f"Unexpected child format: {child}")
         return f"[{label} {' '.join(subtrees)}]"
