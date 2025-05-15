@@ -4,6 +4,7 @@ from tkinter import ttk
 from tkinter.scrolledtext import ScrolledText
 from modules.forest_builder import forest_bottom_up
 from modules.utils import add_preamble
+from modules.tree_visualizer import draw_all_variants
 
 DEBUG = True
 
@@ -32,9 +33,13 @@ def launch_gui():
         sentence = input_entry.get().strip()
         debug(f"Input sentence: {sentence}")
 
-        forest_code = forest_bottom_up(sentence)
-        latex_code = add_preamble(forest_code)
+        forests = forest_bottom_up(sentence)
+        if isinstance(forests, list) and all(isinstance(f, list) for f in forests):
+            draw_all_variants(forests)
+        else:
+            print("[DEBUG] Unexpected forest format")
 
+        latex_code = "\n\n".join([add_preamble(forest) for forest in forests])
         output_box.delete("1.0", tk.END)
         output_box.insert(tk.END, latex_code)
 

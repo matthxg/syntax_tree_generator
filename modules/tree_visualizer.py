@@ -1,4 +1,3 @@
-# modules/tree_visualizer.py
 from nltk.tree import Tree
 from modules.utils import esc
 
@@ -25,10 +24,16 @@ def draw_forest(forest):
     from nltk.draw.tree import TreeWidget
     import tkinter as tk
 
-    for label, children in forest:
+    for idx, (label, children) in enumerate(forest):
         tree = forest_to_nltk_tree(label, children)
-        cf = CanvasFrame()
+        cf = CanvasFrame()  # Fixed: removed 'title' argument
         tc = TreeWidget(cf.canvas(), tree)
         cf.add_widget(tc, 10, 10)
         cf.canvas().update()
         cf.mainloop()
+
+def draw_all_variants(forests):
+    for i, forest in enumerate(forests):
+        if len(forest) != 1:
+            print(f"Warning: Tree {i+1} has multiple top-level nodes.")
+        draw_forest(forest)

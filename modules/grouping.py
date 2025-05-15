@@ -1,77 +1,182 @@
-# modules/grouping.py
-from modules.phrases.group_np import try_group_np
-from modules.phrases.group_vp import try_group_vp
-from modules.phrases.group_pp import try_group_pp
-from modules.phrases.group_tp import try_group_tp
-from modules.phrases.group_cp import try_group_cp
-from modules.phrases.group_adjp import try_group_adjp
-from modules.phrases.group_advp import try_group_advp
+from copy import deepcopy
+import json
 
-def try_group_chunks(forest):
-    round_num = 1
-    while True:
-        print(f"🔁 Grouping round {round_num}...")
-        forest, changed = _apply_grouping_pass(forest)
-        if not changed:
-            break
-        round_num += 1
-    return forest, changed
-
-from modules.phrases.group_coord import try_group_coord
-
-def _apply_grouping_pass(forest):
-    print("✅ Using grouping.py from canvas")
-
+def try_group_pp(tokens):
     i = 0
-    changed = False
-    new_forest = []
-
-    while i < len(forest):
-        current = forest[i]
-        next1 = forest[i+1] if i + 1 < len(forest) else None
-        next2 = forest[i+2] if i + 2 < len(forest) else None
-        next3 = forest[i+3] if i + 3 < len(forest) else None
-
-        # Handle punctuation (do not mark as changed)
-        if current[0] == "PUNCT":
-            print(f"Marking punctuation: {current}")
-            new_forest.append(("PUNCT", current[1]))
-            i += 1
-            continue
-
-        # Try coordination first
-        coord_result = try_group_coord(current, next1, next2, next3)
-        if coord_result:
-            new_forest.append(coord_result["node"])
-            i += coord_result["consumed"]
-            changed = True
-            continue
-
-        # Try each phrase type
-        for grouper in [
-            try_group_np, try_group_vp, try_group_pp,
-            try_group_tp, try_group_cp,
-            try_group_adjp, try_group_advp
-        ]:
-            result = grouper(current, next1, next2, next3)
-            if result:
-                new_forest.append(result["node"])
-                i += result["consumed"]
-                changed = True
-                break
+    while i < len(tokens) - 1:
+        if tokens[i][0] == 'P' and tokens[i+1][0] == 'NP':
+            tokens = tokens[:i] + [('PP', [tokens[i], tokens[i+1]])] + tokens[i+2:]
+            i = 0
         else:
-            # Defer fallback: V → VP (intransitive) ONLY if no signs of NP/PP/CP grouping
-            if current[0] == "V" and not (
-                (next1 and next1[0] == "D" and next2 and next2[0] == "N") or
-                (next1 and next1[0] in ["NP", "PP", "CP"])
-            ):
-                print(f"Deferred fallback: Forming VP (intransitive): {current}")
-                new_forest.append(("VP", [current]))
-                i += 1
-                changed = True
-            else:
-                print(f"⚠️ No rule applied to token: {current}")
-                new_forest.append(current)
-                i += 1
+            i += 1
+    return tokens
 
-    return new_forest, changed
+def try_group_nbar(tokens):
+    i = 0
+    while i < len(tokens) - 1:
+        if tokens[i][0] == 'Adj' and tokens[i+1][0] == 'N':
+            tokens = tokens[:i] + [("N'", [tokens[i], tokens[i+1]])] + tokens[i+2:]
+            i = 0
+        else:
+            i += 1
+    return tokens
+
+def try_group_np(tokens):
+    i = 0
+    while i < len(tokens) - 1:
+        if tokens[i][0] == 'D' and tokens[i+1][0] in ['N', "N'"]:
+            tokens = tokens[:i] + [('NP', [tokens[i], tokens[i+1]])] + tokens[i+2:]
+            i = 0
+        elif tokens[i][0] == 'NP' and tokens[i+1][0] == 'PP':
+            tokens = tokens[:i] + [('NP', [tokens[i], tokens[i+1]])] + tokens[i+2:]
+            i = 0
+        else:
+            i += 1
+    return tokens
+
+def try_group_nbar_coord(tokens):
+    i = 0
+    while i < len(tokens) - 2:
+        if tokens[i][0] == "N'" and tokens[i+1][0] == 'CONJ' and tokens[i+2][0] == "N'":
+            tokens = tokens[:i] + [("N'", [tokens[i], tokens[i+1], tokens[i+2]])] + tokens[i+3:]
+            i = 0
+        else:
+            i += 1
+    return tokens
+
+def try_group_vprime(tokens):
+    i = 0
+    while i < len(tokens) - 1:
+        if tokens[i][0] == 'V' and tokens[i+1][0] == 'NP':
+            base = tokens[:i] + [("V'", [tokens[i], tokens[i+1]])] + tokens[i+2:]
+            variants = [base]
+            if i + 2 < len(tokens) and tokens[i+2][0] == 'PP':
+                alt = tokens[:i] + [("V'", [tokens[i], tokens[i+1], tokens[i+2]])] + tokens[i+3:]
+                variants.append(alt)
+            return variants
+        i += 1
+    return [tokens]
+
+def try_group_vp(tokens):
+    i = 0
+    while i < len(tokens):
+        if tokens[i][0] == "V'":
+            tokens = tokens[:i] + [('VP', [tokens[i]])] + tokens[i+1:]
+            i = 0
+        else:
+            i += 1
+    return tokens
+
+def try_group_tp(tokens):
+    i = 0
+    while i < len(tokens) - 1:
+        if tokens[i][0] == 'NP' and tokens[i+1][0] == 'VP':
+            t_node = ('T', ['Ø'])
+            t_bar = ("T'", [t_node, tokens[i+1]])
+            tokens = tokens[:i] + [('TP', [tokens[i], t_bar])] + tokens[i+2:]
+            i = 0
+        else:
+            i += 1
+    return tokens
+
+def try_general_coordination(tokens):
+    while True:
+        new_tokens = _coord_pass(tokens)
+        if new_tokens == tokens:
+            return tokens
+        tokens = new_tokens
+
+def _coord_pass(tokens):
+    print("[DEBUG] Trying coordination on:", tokens)
+    i = 0
+    while i < len(tokens) - 2:
+        coord_group = []
+        label = None
+        j = i
+
+        while j < len(tokens) - 2:
+            first, sep, second = tokens[j], tokens[j+1], tokens[j+2]
+
+            if not (isinstance(first, tuple) and isinstance(second, tuple)):
+                break
+            if label and (first[0] != label or second[0] != label):
+                break
+            if label is None:
+                label = first[0]
+
+            if sep[0] == 'PUNCT' and sep[1] in [[','], [';'], [':']] and second[0] == first[0]:
+                if label is None:
+                    label = first[0]
+                if not coord_group:
+                    coord_group.extend([first, second])
+                else:
+                    coord_group.extend([second])
+                j += 2
+                continue
+
+            if sep[0] == 'CONJ':
+                if label is None:
+                    label = first[0]
+                if not coord_group:
+                    coord_group.extend([first, sep, second])
+                else:
+                    coord_group.extend([sep, second])
+                j += 2
+                continue
+
+            break
+
+        if coord_group:
+            print("[DEBUG] Formed coordination:", coord_group)
+            new_node = (label, coord_group)
+            tokens = tokens[:i] + [new_node] + tokens[j+1:]
+            i = 0
+        else:
+            i += 1
+
+    return tokens
+
+def apply_grouping_rules(tokens):
+    all_variants = [tokens]
+    final_variants = []
+
+    for variant in all_variants:
+        prev = None
+        while prev != variant:
+            prev = deepcopy(variant)
+
+            # Build basic constituents first
+            variant = try_group_nbar(variant)
+            variant = try_group_np(variant)
+            variant = try_group_pp(variant)
+
+            # Try coordination
+            variant = try_group_np(variant)
+            variant = try_general_coordination(variant)
+            variant = try_group_nbar(variant)
+            variant = try_group_np(variant)
+            variant = try_general_coordination(variant)
+
+        # 🧠 Final top-level coordination to catch remaining CONJ + NP at root
+        variant = try_general_coordination(variant)
+
+        high_variant = variant
+        low_variant = try_group_nbar_coord(deepcopy(variant))
+        low_variant = try_group_np(low_variant)
+
+        for path in [high_variant, low_variant]:
+            vprime_variants = try_group_vprime(path)
+            for vprime_variant in vprime_variants:
+                vprime_variant = try_group_vp(vprime_variant)
+                vprime_variant = try_group_tp(vprime_variant)
+                final_variants.append(vprime_variant)
+
+    unique = []
+    seen = set()
+    for tree in final_variants:
+        key = json.dumps(tree, sort_keys=True)
+        if key not in seen:
+            seen.add(key)
+            unique.append(tree)
+
+    return unique
