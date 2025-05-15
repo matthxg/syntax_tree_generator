@@ -87,49 +87,43 @@ def try_general_coordination(tokens):
         tokens = new_tokens
 
 def _coord_pass(tokens):
-    print("[DEBUG] Trying coordination on:", tokens)
     i = 0
     while i < len(tokens) - 2:
-        coord_group = []
-        label = None
-        j = i
+        if not isinstance(tokens[i], tuple):
+            i += 1
+            continue
 
-        while j < len(tokens) - 2:
-            first, sep, second = tokens[j], tokens[j+1], tokens[j+2]
+        label = tokens[i][0]
+        group = [tokens[i]]
+        j = i + 1
 
-            if not (isinstance(first, tuple) and isinstance(second, tuple)):
-                break
-            if label and (first[0] != label or second[0] != label):
-                break
-            if label is None:
-                label = first[0]
+        while j < len(tokens) - 1:
+            punct_or_conj = tokens[j]
+            next_tok = tokens[j + 1]
 
-            if sep[0] == 'PUNCT' and sep[1] in [[','], [';'], [':']] and second[0] == first[0]:
-                if label is None:
-                    label = first[0]
-                if not coord_group:
-                    coord_group.extend([first, second])
+            if punct_or_conj[0] == 'PUNCT' and punct_or_conj[1] == [',']:
+                if isinstance(next_tok, tuple) and next_tok[0] == label:
+                    group.append(next_tok)
+                    j += 2
+                    continue
+                elif j + 2 < len(tokens) and tokens[j + 1][0] == 'CONJ' and tokens[j + 2][0] == label:
+                    group.append(tokens[j + 1])
+                    group.append(tokens[j + 2])
+                    j += 3
+                    break
                 else:
-                    coord_group.extend([second])
+                    break
+            elif punct_or_conj[0] == 'CONJ' and next_tok[0] == label:
+                group.append(punct_or_conj)
+                group.append(next_tok)
                 j += 2
-                continue
+                break
+            else:
+                break
 
-            if sep[0] == 'CONJ':
-                if label is None:
-                    label = first[0]
-                if not coord_group:
-                    coord_group.extend([first, sep, second])
-                else:
-                    coord_group.extend([sep, second])
-                j += 2
-                continue
-
-            break
-
-        if coord_group:
-            print("[DEBUG] Formed coordination:", coord_group)
-            new_node = (label, coord_group)
-            tokens = tokens[:i] + [new_node] + tokens[j+1:]
+        if len(group) > 1:
+            new_node = (label, group)
+            tokens = tokens[:i] + [new_node] + tokens[j:]
             i = 0
         else:
             i += 1
@@ -157,7 +151,6 @@ def apply_grouping_rules(tokens):
             variant = try_group_np(variant)
             variant = try_general_coordination(variant)
 
-        # 🧠 Final top-level coordination to catch remaining CONJ + NP at root
         variant = try_general_coordination(variant)
 
         high_variant = variant

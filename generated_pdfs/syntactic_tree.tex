@@ -2,11 +2,10 @@
     \documentclass[border=10pt]{standalone}
     \usepackage[edges]{forest}
     \begin{document}
-    \begin{forest}
+    
+\begin{forest}
 for tree={grow'=south,parent anchor=south,child anchor=north,l=1.3cm,s sep=6pt,anchor=center,calign=center,tier/.option=level}
-[TP [T' [VP [V' [NP [N [banana]] [D [the]]] [V [ate]]]] [T [$\emptyset$]]] [NP [N' [N [He]]]]]
-[CONJ [and]]
-[NP [N [apple]] [D [an]]]
+[TP [T' [VP [V' [NP [NP [N [peach]] [D [a]]] [CONJ [and]] [NP [N [sandwich]] [D [a]]] [NP [N [cake]] [D [a]]]] [V [ate]]]] [T [$\emptyset$]]] [NP [N [boy]] [D [The]]]]
 [PUNCT [.]]
 \end{forest}
     \end{document}

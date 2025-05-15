@@ -1,9 +1,9 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (MiKTeX 25.4) (preloaded format=pdflatex 2025.5.12)  14 MAY 2025 13:37
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (MiKTeX 25.4) (preloaded format=pdflatex 2025.5.12)  15 MAY 2025 22:31
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
-**"D:/Syntactic trees/generated_pdfs/syntactic_tree.tex"
-(D:/Syntactic trees/generated_pdfs/syntactic_tree.tex
+**D:/syntax_tree_generator-main/generated_pdfs/syntactic_tree.tex
+(D:/syntax_tree_generator-main/generated_pdfs/syntactic_tree.tex
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-04-14>
 (D:\Programy\MiKTeX\tex/latex/standalone\standalone.cls
@@ -542,42 +542,10 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
 File: epstopdf-sys.cfg 2021/03/18 v2.0 Configuration of epstopdf for MiKTeX
 ))
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <7> on input line 11.
+(Font)              <7> on input line 10.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <5> on input line 11.
+(Font)              <5> on input line 10.
 
-Missing character: There is no [ in font nullfont!
-Missing character: There is no C in font nullfont!
-Missing character: There is no O in font nullfont!
-Missing character: There is no N in font nullfont!
-Missing character: There is no J in font nullfont!
-Missing character: There is no [ in font nullfont!
-Missing character: There is no a in font nullfont!
-Missing character: There is no n in font nullfont!
-Missing character: There is no d in font nullfont!
-Missing character: There is no ] in font nullfont!
-Missing character: There is no ] in font nullfont!
-Missing character: There is no [ in font nullfont!
-Missing character: There is no N in font nullfont!
-Missing character: There is no P in font nullfont!
-Missing character: There is no [ in font nullfont!
-Missing character: There is no N in font nullfont!
-Missing character: There is no [ in font nullfont!
-Missing character: There is no a in font nullfont!
-Missing character: There is no p in font nullfont!
-Missing character: There is no p in font nullfont!
-Missing character: There is no l in font nullfont!
-Missing character: There is no e in font nullfont!
-Missing character: There is no ] in font nullfont!
-Missing character: There is no ] in font nullfont!
-Missing character: There is no [ in font nullfont!
-Missing character: There is no D in font nullfont!
-Missing character: There is no [ in font nullfont!
-Missing character: There is no a in font nullfont!
-Missing character: There is no n in font nullfont!
-Missing character: There is no ] in font nullfont!
-Missing character: There is no ] in font nullfont!
-Missing character: There is no ] in font nullfont!
 Missing character: There is no [ in font nullfont!
 Missing character: There is no P in font nullfont!
 Missing character: There is no U in font nullfont!
@@ -594,7 +562,7 @@ Missing character: There is no ] in font nullfont!
 
 
 Non-PDF special ignored!
-<special> papersize=133.95963pt,255.4868pt
+<special> papersize=254.79544pt,293.4477pt
 {C:/Users/Mateusz/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}]
 (syntactic_tree.aux)
  ***********
@@ -603,16 +571,16 @@ L3 programming layer <2025-04-14>
  ***********
  ) 
 Here is how much of TeX's memory you used:
- 25401 strings out of 469940
- 599723 string characters out of 5481909
- 963183 words of memory out of 5000000
- 51930 multiletter control sequences out of 15000+600000
+ 26932 strings out of 469940
+ 626999 string characters out of 5481909
+ 985599 words of memory out of 5000000
+ 53461 multiletter control sequences out of 15000+600000
  626825 words of font info for 40 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 151i,9n,138p,1646b,2312s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 161i,9n,145p,1655b,3336s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <D:/Programy/MiKTeX/fonts/type1/public/amsfonts/cm/cmr10.pfb><D:/Programy/MiK
 TeX/fonts/type1/public/amsfonts/cm/cmsy10.pfb>
-Output written on syntactic_tree.pdf (1 page, 24061 bytes).
+Output written on syntactic_tree.pdf (1 page, 26910 bytes).
 PDF statistics:
  19 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
